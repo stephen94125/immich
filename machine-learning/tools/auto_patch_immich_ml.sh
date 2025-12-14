@@ -122,7 +122,8 @@ for DIR in "${LOCAL_PATCHED_DIR}"/*; do
         found_dirs=true
         DIR_NAME=$(basename "$DIR")
         echo -e "   📦 Uploading ${DIR_NAME}..."
-        kubectl cp -n "${NAMESPACE}" "$DIR" "${POD_NAME}:/cache/${DIR_NAME}"
+
+        kubectl cp -n "${NAMESPACE}" "$DIR" "${POD_NAME}:/cache/"
     fi
 done
 
