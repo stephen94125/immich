@@ -59,6 +59,11 @@ rocm = []
 [tool.uv]
 compile-bytecode = true
 
+[tool.uv.workspace]
+members = [
+    "tools",
+]
+
 [tool.hatch.build.targets.sdist]
 include = ["immich_ml"]
 
