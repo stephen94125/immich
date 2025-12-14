@@ -1,133 +1,109 @@
-<p align="center"> 
-  <br/>
-  <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a>
-  <a href="https://discord.immich.app">
-    <img src="https://img.shields.io/discord/979116623879368755.svg?label=Discord&logo=Discord&style=for-the-badge&logoColor=000000&labelColor=ececec" alt="Discord"/>
-  </a>
-  <br/>
-  <br/>
-</p>
+# Immich Pascal GPU Fork
 
-<p align="center">
-<img src="design/immich-logo-stacked-light.svg" width="300" title="Login With Custom URL">
-</p>
-<h3 align="center">High performance self-hosted photo and video management solution</h3>
-<br/>
-<a href="https://immich.app">
-<img src="design/immich-screenshots.png" title="Main Screenshot">
-</a>
-<br/>
+A fork of [Immich](https://github.com/immich-app/immich) that enables machine learning functionality on Pascal architecture GPUs (GTX 10-series) by downgrading CUDA runtime and patching ONNX models.
 
-<p align="center">
-  <a href="readme_i18n/README_ca_ES.md">Català</a>
-  <a href="readme_i18n/README_es_ES.md">Español</a>
-  <a href="readme_i18n/README_fr_FR.md">Français</a>
-  <a href="readme_i18n/README_it_IT.md">Italiano</a>
-  <a href="readme_i18n/README_ja_JP.md">日本語</a>
-  <a href="readme_i18n/README_ko_KR.md">한국어</a>
-  <a href="readme_i18n/README_de_DE.md">Deutsch</a>
-  <a href="readme_i18n/README_nl_NL.md">Nederlands</a>
-  <a href="readme_i18n/README_tr_TR.md">Türkçe</a>
-  <a href="readme_i18n/README_zh_CN.md">简体中文</a>
-  <a href="readme_i18n/README_zh_TW.md">正體中文</a>
-  <a href="readme_i18n/README_uk_UA.md">Українська</a>
-  <a href="readme_i18n/README_ru_RU.md">Русский</a>
-  <a href="readme_i18n/README_pt_BR.md">Português Brasileiro</a>
-  <a href="readme_i18n/README_sv_SE.md">Svenska</a>
-  <a href="readme_i18n/README_ar_JO.md">العربية</a>
-  <a href="readme_i18n/README_vi_VN.md">Tiếng Việt</a>
-  <a href="readme_i18n/README_th_TH.md">ภาษาไทย</a>
-</p>
+## Motivation
 
+Starting from Immich v2.3.1, the official machine learning Docker image switched to CUDA 12 + cuDNN 9 + ONNX Runtime 1.20.1, which requires GPU compute capability 7.0 or higher. This breaks compatibility with Pascal GPUs (compute capability 6.1), such as the GTX 1070.
 
-> [!WARNING]
-> ⚠️ Always follow [3-2-1](https://www.backblaze.com/blog/the-3-2-1-backup-strategy/) backup plan for your precious photos and videos!
-> 
- 
+This fork addresses the compatibility issue by:
+- Downgrading to CUDA 11.8 + cuDNN 8
+- Pinning ONNX Runtime GPU to version 1.17.1
+- Providing tools to patch newer ONNX models (IR v10) down to v9 for runtime compatibility
 
-> [!NOTE]
-> You can find the main documentation, including installation guides, at https://immich.app/.
+## Key Changes
 
-## Links
+### 1. CUDA 11.8 Downgrade for Pascal GPU Support
+- **Base Image**: Changed from `nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04` to `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04`
+- **ONNX Runtime**: Pinned to `1.17.1` (last version supporting CUDA 11.8)
+- **Modified Files**:
+  - `machine-learning/Dockerfile`
+  - `machine-learning/pyproject.toml`
+  - `machine-learning/uv.lock`
 
-- [Documentation](https://docs.immich.app/)
-- [About](https://docs.immich.app/overview/introduction)
-- [Installation](https://docs.immich.app/install/requirements)
-- [Roadmap](https://immich.app/roadmap)
-- [Demo](#demo)
-- [Features](#features)
-- [Translations](https://docs.immich.app/developer/translations)
-- [Contributing](https://docs.immich.app/overview/support-the-project)
+### 2. ONNX Model Patching Toolkit
+A suite of Python scripts to handle ONNX IR version compatibility:
+- **`audit_onnx_compatibility.py`**: Batch scan ONNX models and report IR versions
+- **`patch_onnx_models.py`**: Downgrade ONNX IR version from v10 to v9
+- **`download_models.py`**: Fetch models from ModelScope (alternative to Hugging Face)
+- **`auto_patch_immich_ml.sh`**: One-click orchestration script for the entire patching workflow
 
-## Demo
+**Tools Location**: `machine-learning/tools/`
 
-Access the demo [here](https://demo.immich.app). For the mobile app, you can use `https://demo.immich.app` for the `Server Endpoint URL`.
+### 3. Bug Fixes
+- Fixed `kubectl cp` destination path to prevent nested directory structures when uploading patched models
 
-### Login credentials
+## Usage
 
-| Email           | Password |
-| --------------- | -------- |
-| demo@immich.app | demo     |
+### Building the Modified Docker Image
 
-## Features
+```bash
+docker build -t immich-machine-learning:pascal \
+  -f machine-learning/Dockerfile \
+  machine-learning/
+```
 
-| Features                                     | Mobile | Web |
-| :------------------------------------------- | ------ | --- |
-| Upload and view videos and photos            | Yes    | Yes |
-| Auto backup when the app is opened           | Yes    | N/A |
-| Prevent duplication of assets                | Yes    | Yes |
-| Selective album(s) for backup                | Yes    | N/A |
-| Download photos and videos to local device   | Yes    | Yes |
-| Multi-user support                           | Yes    | Yes |
-| Album and Shared albums                      | Yes    | Yes |
-| Scrubbable/draggable scrollbar               | Yes    | Yes |
-| Support raw formats                          | Yes    | Yes |
-| Metadata view (EXIF, map)                    | Yes    | Yes |
-| Search by metadata, objects, faces, and CLIP | Yes    | Yes |
-| Administrative functions (user management)   | No     | Yes |
-| Background backup                            | Yes    | N/A |
-| Virtual scroll                               | Yes    | Yes |
-| OAuth support                                | Yes    | Yes |
-| API Keys                                     | N/A    | Yes |
-| LivePhoto/MotionPhoto backup and playback    | Yes    | Yes |
-| Support 360 degree image display             | No     | Yes |
-| User-defined storage structure               | Yes    | Yes |
-| Public Sharing                               | Yes    | Yes |
-| Archive and Favorites                        | Yes    | Yes |
-| Global Map                                   | Yes    | Yes |
-| Partner Sharing                              | Yes    | Yes |
-| Facial recognition and clustering            | Yes    | Yes |
-| Memories (x years ago)                       | Yes    | Yes |
-| Offline support                              | Yes    | No  |
-| Read-only gallery                            | Yes    | Yes |
-| Stacked Photos                               | Yes    | Yes |
-| Tags                                         | No     | Yes |
-| Folder View                                  | Yes    | Yes |
+### Using the ONNX Patching Toolkit
 
-## Translations
+#### Prerequisites
+- Python 3.11+
+- `uv` package manager
+- `kubectl` configured with access to your Immich deployment
 
-Read more about translations [here](https://docs.immich.app/developer/translations).
+#### Quick Start with Auto-Patch Script
 
-<a href="https://hosted.weblate.org/engage/immich/">
-<img src="https://hosted.weblate.org/widget/immich/immich/multi-auto.svg" alt="Translation status" />
-</a>
+```bash
+cd machine-learning/tools
+chmod +x auto_patch_immich_ml.sh
+./auto_patch_immich_ml.sh
+```
 
-## Repository activity
+The script will:
+1. Fetch models from the running Immich ML pod via `kubectl`
+2. Audit all ONNX models for IR version compatibility
+3. Automatically patch incompatible models (IR v10 → v9)
+4. Upload patched models back to the pod
+5. Trigger model cache reload
 
-![Activities](https://repobeats.axiom.co/api/embed/9e86d9dc3ddd137161f2f6d2e758d7863b1789cb.svg "Repobeats analytics image")
+#### Manual Patching
 
-## Star history
+```bash
+cd machine-learning/tools
+uv sync
+uv run python audit_onnx_compatibility.py /path/to/cache
+uv run python patch_onnx_models.py /path/to/cache
+```
 
-<a href="https://star-history.com/#immich-app/immich&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=immich-app/immich&type=date" width="100%" />
- </picture>
-</a>
+### Docker Compose Example
 
-## Contributors
+Replace the official `immich-machine-learning` image with your custom build:
 
-<a href="https://github.com/immich-app/immich/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=immich-app/immich" width="100%"/>
-</a>
+```yaml
+services:
+  immich-machine-learning:
+    image: immich-machine-learning:pascal
+    volumes:
+      - model-cache:/cache
+```
+
+## Compatibility
+
+- **Supported GPUs**: NVIDIA Pascal architecture (GTX 1050/1060/1070/1080, etc.)
+- **CUDA Compute Capability**: 6.1
+- **Tested Environment**: GTX 1070 with CUDA 11.8
+
+## Related Commits
+
+1. `ee129a6` - build(ml): downgrade to CUDA 11.8 for Pascal GPU support
+2. `2bb5bbe` - feat(tools): add ONNX model patching toolkit for Immich
+3. `1156724` - fix(scripts): correct kubectl cp destination path to prevent nested directories
+
+## Upstream Project
+
+This is a fork of [Immich](https://github.com/immich-app/immich) - a high-performance self-hosted photo and video management solution.
+
+For the original project documentation, visit [https://immich.app](https://immich.app).
+
+## License
+
+This project inherits the AGPLv3 license from the upstream Immich project.
