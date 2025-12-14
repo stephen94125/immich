@@ -50,7 +50,7 @@ dev = ["locust>=2.15.1", { include-group = "test" }, { include-group = "lint" }]
 
 [project.optional-dependencies]
 cpu = ["onnxruntime>=1.15.0,<2"]
-cuda = ["onnxruntime-gpu>=1.17.0,<2"]
+cuda = ["onnxruntime-gpu==1.17.1"]
 openvino = ["onnxruntime-openvino>=1.17.1,<1.19.0"]
 armnn = ["onnxruntime>=1.15.0,<2"]
 rknn = ["onnxruntime>=1.15.0,<2", "rknn-toolkit-lite2>=2.3.0,<3"]
@@ -58,14 +58,6 @@ rocm = []
 
 [tool.uv]
 compile-bytecode = true
-
-[[tool.uv.index]]
-name = "cuda12"
-url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/"
-explicit = true
-
-[tool.uv.sources]
-onnxruntime-gpu = { index = "cuda12" }
 
 [tool.hatch.build.targets.sdist]
 include = ["immich_ml"]
